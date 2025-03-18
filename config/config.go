@@ -59,10 +59,10 @@ func loadToken() (*oauth2.Token, error) {
 	}
 	defer file.Close()
 
-	tok := &oauth2.Token{}
-	err = json.NewDecoder(file).Decode(tok)
+	token := &oauth2.Token{}
+	err = json.NewDecoder(file).Decode(token)
 
-	return tok, err
+	return token, err
 }
 
 func saveToken(token *oauth2.Token) {
@@ -88,24 +88,24 @@ func getTokenFromWeb() *oauth2.Token {
 	fmt.Print("Enter the code: ")
 	fmt.Scan(&authCode)
 
-	tok, err := config.Exchange(context.Background(), authCode)
+	token, err := config.Exchange(context.Background(), authCode)
 	if err != nil {
 		log.Fatalf("Failed to exchange auth code for token: %v", err)
 	}
 
-	return tok
+	return token
 }
 
 func GetGmailClient() *oauth2.Token {
-	tok, err := loadToken()
+	token, err := loadToken()
 	if err == nil {
-		return tok
+		return token
 	}
 
-	tok = getTokenFromWeb()
-	saveToken(tok)
+	token = getTokenFromWeb()
+	saveToken(token)
 
-	return tok
+	return token
 }
 
 func GetGmailService() (*gmail.Service, error) {
