@@ -123,9 +123,11 @@ func extractSenderEmail(msg *gmail.Message) string {
 		if header.Name == "From" {
 			re := regexp.MustCompile(`<([^>]+)>`)
 			matches := re.FindStringSubmatch(header.Value)
+
 			if len(matches) > 1 {
 				return utils.SanitizeFileName(matches[1])
 			}
+
 			return utils.SanitizeFileName(header.Value)
 		}
 	}
