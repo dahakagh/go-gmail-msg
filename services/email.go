@@ -19,7 +19,7 @@ func FetchUnreadEmails(service *gmail.Service) {
 	user := "me"
 	query := "is:unread"
 
-	response, err := service.Users.Messages.List(user).Q(query).MaxResults(2).Do()
+	response, err := service.Users.Messages.List(user).Q(query).Do()
 	if err != nil {
 		log.Fatalf("Failed to fetch emails: %v", err)
 	}
