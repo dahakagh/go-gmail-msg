@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
+	"net/http"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -78,15 +80,29 @@ func saveToken(token *oauth2.Token) {
 }
 
 func getTokenFromWeb() *oauth2.Token {
+	listener, err := net.Listen("tcp", os.Getenv("HTTP_SERVER_URL"))
+	if err != nil {
+		log.Fatal("Server startup error:", err)
+	}
+
+	defer listener.Close()
+
 	config := GetOAuthConfig()
 	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
 
 	fmt.Println("Go to the following link to authorize:", authURL)
 
-	var authCode string
+	authCodeChannel := make(chan string)
 
-	fmt.Print("Enter the code: ")
-	fmt.Scan(&authCode)
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		authCodeChannel <- r.URL.Query().Get("code")
+
+		fmt.Fprintf(w, "Authentication successful, you can close the window.")
+	})
+
+	go http.Serve(listener, nil)
+
+	authCode := <-authCodeChannel
 
 	token, err := config.Exchange(context.Background(), authCode)
 	if err != nil {
