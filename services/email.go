@@ -92,11 +92,16 @@ func extractEmailDate(msg *gmail.Message) string {
 		if strings.EqualFold(header.Name, "Date") {
 			dateStr := header.Value
 
-			dateStr = strings.TrimSuffix(dateStr, " (UTC)")
+			dateStr = strings.Join(strings.Fields(dateStr), " ")
+
+			re := regexp.MustCompile(`\s*\(.*\)$`)
+			dateStr = re.ReplaceAllString(dateStr, "")
 
 			formats := []string{
 				time.RFC1123Z,
 				time.RFC1123,
+				"Mon, 02 Jan 2006 15:04:05",
+				"Mon, 02 Jan 2006 15:04:05 -0700",
 			}
 
 			for _, format := range formats {

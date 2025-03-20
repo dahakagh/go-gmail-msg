@@ -1,4 +1,4 @@
-package config
+package gmail
 
 import (
 	"context"
@@ -9,7 +9,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/joho/godotenv"
+	"go-gmail-msg/config"
+
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/gmail/v1"
@@ -17,22 +18,15 @@ import (
 )
 
 const (
-	credentialsFile = "credentials.json"
-	tokenFileName   = "token.json"
-	authCodeState   = "state-token"
+	tokenFileName = "token.json"
+	authCodeState = "state-token"
 )
 
 var oauthConfig *oauth2.Config
 
-func loadEnv() {
-	if err := godotenv.Load(); err != nil {
-		log.Fatal("Error loading .env file")
-	}
-}
-
 func GetOAuthConfig() *oauth2.Config {
 	if oauthConfig == nil {
-		loadEnv()
+		config.LoadEnv()
 
 		oauthConfig = &oauth2.Config{
 			ClientID:     os.Getenv("GMAIL_CLIENT_ID"),
@@ -46,7 +40,7 @@ func GetOAuthConfig() *oauth2.Config {
 			Endpoint: google.Endpoint,
 		}
 
-		if oauthConfig.ClientID == "" || oauthConfig.ClientSecret == "" || oauthConfig.RedirectURL == "" {
+		if oauthConfig.ClientID == "" || oauthConfig.ClientSecret == "" || oauthConfig.RedirectURL == "" || os.Getenv("HTTP_SERVER_ADDRESS") == "" {
 			log.Fatal("GMAIL API credentials are missing in .env file")
 		}
 	}
@@ -59,6 +53,7 @@ func loadToken() (*oauth2.Token, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	defer file.Close()
 
 	token := &oauth2.Token{}
@@ -80,7 +75,9 @@ func saveToken(token *oauth2.Token) {
 }
 
 func getTokenFromWeb() *oauth2.Token {
-	listener, err := net.Listen("tcp", os.Getenv("HTTP_SERVER_URL"))
+	host := os.Getenv("HTTP_SERVER_ADDRESS")
+
+	listener, err := net.Listen("tcp", host)
 	if err != nil {
 		log.Fatal("Server startup error:", err)
 	}
@@ -88,7 +85,7 @@ func getTokenFromWeb() *oauth2.Token {
 	defer listener.Close()
 
 	config := GetOAuthConfig()
-	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
+	authURL := config.AuthCodeURL(authCodeState, oauth2.AccessTypeOffline)
 
 	fmt.Println("Go to the following link to authorize:", authURL)
 
@@ -133,7 +130,7 @@ func GetGmailService() (*gmail.Service, error) {
 	oauthClient := oauth2.NewClient(ctx, tokenSource)
 
 	refreshedToken, err := tokenSource.Token()
-	if err == nil {
+	if err == nil && refreshedToken.AccessToken != tok.AccessToken {
 		saveToken(refreshedToken)
 	}
 
